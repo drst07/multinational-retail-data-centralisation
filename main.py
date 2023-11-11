@@ -60,3 +60,6 @@ events_data = data_extractor.extract_from_s3_events()
 cleaned_events_data = data_cleaning.clean_events(events_data)
 
 db_connector.upload_to_db(cleaned_events_data, 'dim_date_times')
+
+if __name__ == "__main__":
+    
