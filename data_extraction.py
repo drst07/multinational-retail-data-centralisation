@@ -6,6 +6,7 @@ import pandas as pd
 import requests
 import boto3
 from io import BytesIO
+import tabula
 
 class DataExtractor:
     ''' 
@@ -59,6 +60,11 @@ class DataExtractor:
             return df
         else:
             return None
+        
+    def retrieve_pdf_data(self,pdfurl):
+        pdf_tables = tabula.read_pdf(pdfurl, pages='all', multiple_tables=True)
+        pdf_data = pd.concat(pdf_tables, ignore_index=True)
+        return pdf_data
         
     def extract_from_s3(self,s3_address):
         s3_client = boto3.client('s3')

@@ -16,6 +16,7 @@ class DataCleaning:
     def clean_user_data(self,df):
         # df.to_csv('retaildata.csv')
         cleaned_df = df.copy()  # Create a copy to avoid modifying the original DataFrame
+        cleaned_df = cleaned_df.drop_duplicates()
         # print(cleaned_df.info())
         ##check data types and fix
         #check for columns that should be string
@@ -26,6 +27,7 @@ class DataCleaning:
         cleaned_df.address= cleaned_df.address.astype('string')
         cleaned_df.country= cleaned_df.country.astype('string')
         cleaned_df.country_code= cleaned_df.country_code.astype('string')
+        cleaned_df['country_code'] = cleaned_df['country_code'].replace('GGB','GB')
         cleaned_df.phone_number= cleaned_df.phone_number.astype('string')
         cleaned_df.user_uuid= cleaned_df.user_uuid.astype('string')
 
@@ -47,19 +49,45 @@ class DataCleaning:
      
         return cleaned_df
     
+    def clean_card_number(self,card_number):
+        return ''.join(char for char in str(card_number) if char.isdigit() or char != '?')
+
+    def clean_card_data(self,df):
+        # df.to_csv('card_orig.csv',index=False)
+        pdf_dataframe = df[df["card_number"] != "NULL"]
+        pdf_dataframe['card_number'] = pdf_dataframe['card_number'].apply(self.clean_card_number)
+        pdf_dataframe = pdf_dataframe[pdf_dataframe['card_number'] != '']
+        # pdf_dataframe = pdf_dataframe[pdf_dataframe["card_number"] != "card_number"]
+        pdf_dataframe = pdf_dataframe[pd.to_numeric(pdf_dataframe['card_number'], errors='coerce').notnull()]
+        # pdf_dataframe.to_csv('card_data2.csv',index=False)
+        print(pdf_dataframe .head())
+        pdf_dataframe.to_csv('card3.csv',index=False)
+        return pdf_dataframe
+    
     def clean_store_data(self,df):
         cleaned_df = df.copy()  # Create a copy to avoid modifying the original DataFrame
+        cleaned_df.to_csv('store_data_orig.csv')
+        # cleaned_df = cleaned_df.drop_duplicates()
         # print(cleaned_df.shape)
         cleaned_df.replace({'continent': ['eeEurope', 'eeAmerica']}, {'continent': ['Europe', 'America']}, inplace=True)
         cleaned_df['opening_date'] = pd.to_datetime(cleaned_df['opening_date'], infer_datetime_format=True, errors='coerce')
         cleaned_df.drop(columns='lat', inplace=True)
+        cleaned_df['staff_numbers'] = cleaned_df['staff_numbers'].str.replace(r'[a-zA-Z]', '', regex=True)
+        cleaned_df['staff_numbers'] = pd.to_numeric(cleaned_df["staff_numbers"], errors='coerce')
+        cleaned_df["longitude"] = pd.to_numeric(cleaned_df["longitude"], errors='coerce')
+        cleaned_df["latitude"] = pd.to_numeric(cleaned_df["latitude"], errors='coerce')
+        
+        cleaned_df = cleaned_df.replace('N/A', np.nan)
         cleaned_df = cleaned_df.replace('NULL', np.nan)
-        cleaned_df.dropna(subset=['opening_date', 'store_type'], inplace=True)
+        # cleaned_df.dropna(subset=['opening_date', 'store_type','staff_numbers'], inplace=True)
+        cleaned_df.dropna(subset=['store_code'], inplace=True)
         # cleaned_df['longitude'] = cleaned_df['longitude'].astype(float)
         # cleaned_df['latitude'] = cleaned_df['latitude'].astype(float)
         # print(cleaned_df.info())
         # print(cleaned_df.shape)
         # cleaned_df.to_csv('store_data.csv')
+        cleaned_df.to_csv('store_data2.csv')
+        return cleaned_df
 
     def fix_weird_value(self, value):
         if isinstance(value, str) and 'x' in value:
@@ -73,8 +101,9 @@ class DataCleaning:
         else:
             return value
 
-    def convert_product_weights(self,data):
-        df = data.copy()
+    def convert_product_weights(self,df):
+        # df = data.copy()
+        # df = df.drop_duplicates()
         # print(df.info())
         # Define a regular expression to extract the numeric part and the unit part
         df['weight'] = df['weight'].astype(str)
@@ -94,17 +123,20 @@ class DataCleaning:
         # Update 'weightnumeric' column based on conditions
         df_result['weight'] = df_result.apply(lambda x: x['weightnumeric']/1000 if x['unit']=='g' or x['unit']=='ml' else x['weightnumeric'], axis=1)
         df_result.drop(columns=['weightnumeric','unit'], inplace=True)
-        # print(df_result.head(10))
+        # print('aa: ',df_result['weight'].head(10))
         return df_result
     
     def clean_products_data(self,products_dataframe):
-        products_df=self.convert_product_weights(products_dataframe)#sets the rpoducts dataframe from the cleaned weights dataframe in the previous method
-        products_df.dropna(subset=['uuid', 'product_code'], inplace=True)
+        # products_dataframe = products_dataframe.drop_duplicates()
+        products_df=products_dataframe
+        # products_df=self.convert_product_weights(products_dataframe)#sets the rpoducts dataframe from the cleaned weights dataframe in the previous method
+        # products_df.replace('', np.nan, inplace=True)
+        products_df.dropna(subset=['uuid', 'product_code','removed'], inplace=True)
         products_df['date_added']=pd.to_datetime(products_df['date_added'], format='%Y-%m-%d', errors='coerce')
         drop_prod_list=['S1YB74MLMJ','C3NCA2CL35', 'WVPMHZP59U']# list of strings to drop rows for in the next line
         products_df.drop(products_df[products_df['category'].isin(drop_prod_list)].index, inplace=True)# drop the rows where the category column has entries equal to thouse in the list above
         # print(products_df.shape)
-        # print(products_df.head())
+        # print('bb: ',products_df['weight'].head())
         return products_df
     
     def clean_orders_data(self,table_name,db_connector):
@@ -112,9 +144,11 @@ class DataCleaning:
         data_extractor = DataExtractor(db_connector)
         engine = db_connector.init_db_engine()
         df = data_extractor.read_rds_table(table_name, engine)
-        print(df.head())
+        # print(df.head())
+        # df = df.drop_duplicates()
         df.drop(columns=['first_name','last_name','1','level_0'],inplace=True)
         print(df.head())
+        df.to_csv('cleaned_orders.csv',index=False)
         return df
     
     def clean_events(self,df):
