@@ -40,6 +40,7 @@ class DataExtractor:
     
     def retrieve_stores_data(self):
         num_of_stores = self.list_number_of_stores()
+        print('num_of_stores:',num_of_stores)
         stores_data=[]
         try:
             for store_num in range(0,num_of_stores):
@@ -49,6 +50,7 @@ class DataExtractor:
                 if response.status_code == 200:
                         store_data = response.json()
                         stores_data.append(store_data)
+                        
                 else:
                         print(f"Error: Unable to retrieve data for store {store_num}. Status code: {response.status_code}")
         except Exception as e:
@@ -57,6 +59,8 @@ class DataExtractor:
         # Create a pandas DataFrame from the extracted store data
         if stores_data:
             df = pd.DataFrame(stores_data)
+            print(df.head())
+            print(df.shape)
             return df
         else:
             return None

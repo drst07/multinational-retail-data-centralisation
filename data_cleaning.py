@@ -70,6 +70,7 @@ class DataCleaning:
         # cleaned_df = cleaned_df.drop_duplicates()
         # print(cleaned_df.shape)
         cleaned_df.replace({'continent': ['eeEurope', 'eeAmerica']}, {'continent': ['Europe', 'America']}, inplace=True)
+        cleaned_df=cleaned_df[cleaned_df['continent'].isin(['America', 'Europe'])]
         cleaned_df['opening_date'] = pd.to_datetime(cleaned_df['opening_date'], infer_datetime_format=True, errors='coerce')
         cleaned_df.drop(columns='lat', inplace=True)
         cleaned_df['staff_numbers'] = cleaned_df['staff_numbers'].str.replace(r'[a-zA-Z]', '', regex=True)
@@ -80,13 +81,14 @@ class DataCleaning:
         cleaned_df = cleaned_df.replace('N/A', np.nan)
         cleaned_df = cleaned_df.replace('NULL', np.nan)
         # cleaned_df.dropna(subset=['opening_date', 'store_type','staff_numbers'], inplace=True)
-        cleaned_df.dropna(subset=['store_code'], inplace=True)
+        # cleaned_df.dropna(subset=['store_code'], inplace=True)
         # cleaned_df['longitude'] = cleaned_df['longitude'].astype(float)
         # cleaned_df['latitude'] = cleaned_df['latitude'].astype(float)
         # print(cleaned_df.info())
         # print(cleaned_df.shape)
         # cleaned_df.to_csv('store_data.csv')
         cleaned_df.to_csv('store_data2.csv')
+        print(cleaned_df.shape)
         return cleaned_df
 
     def fix_weird_value(self, value):
@@ -152,12 +154,35 @@ class DataCleaning:
         return df
     
     def clean_events(self,df):
+        # date_time_dataframe = df.copy()
+        # print(date_time_dataframe.shape)
+        # date_time_dataframe['day'] = pd.to_numeric(date_time_dataframe['day'], errors='coerce')
+        # date_time_dataframe.dropna(subset=['day', 'year', 'month'], inplace=True)
+        # date_time_dataframe['datetime'] = pd.to_datetime(date_time_dataframe[['year', 'month', 'day', 'timestamp']].astype(str).agg(' '.join, axis=1), format='%Y %m %d %H:%M:%S')
+        # date_time_dataframe = date_time_dataframe.astype({"timestamp" : "string", "time_period" : "string", "date_uuid" : "string"})
         date_time_dataframe = df.copy()
-        print(date_time_dataframe.shape)
+    
+        # Convert 'day' to numeric
         date_time_dataframe['day'] = pd.to_numeric(date_time_dataframe['day'], errors='coerce')
+        
+        # Drop rows with missing values in 'day', 'year', and 'month'
         date_time_dataframe.dropna(subset=['day', 'year', 'month'], inplace=True)
-        date_time_dataframe['timestamp'] = pd.to_datetime(date_time_dataframe['timestamp'], format='%H:%M:%S', errors='coerce')# timestamp in form hour minute and seconds
-        print(date_time_dataframe.shape)
+        
+        # Format 'year', 'month', 'day' as zero-padded integers and concatenate
+        date_time_dataframe['datetime'] = pd.to_datetime(
+            date_time_dataframe[['year', 'month', 'day']].astype(int).astype(str).agg(' '.join, axis=1) +
+            ' ' + date_time_dataframe['timestamp'],
+            format='%Y %m %d %H:%M:%S'
+        )
+        
+        # Convert specific columns to string type
+        date_time_dataframe = date_time_dataframe.astype({"timestamp": "string", "time_period": "string", "date_uuid": "string"})
+        
+        # date_time_dataframe['timestamp'] = pd.to_datetime(date_time_dataframe['timestamp'], format='%H:%M:%S', errors='coerce')# timestamp in form hour minute and seconds
+        # print(date_time_dataframe.shape)
+        # Extract time part from timestamp
+        # date_time_dataframe['timestamp'] = date_time_dataframe['timestamp'].dt.strftime('%H:%M:%S')
+        print(date_time_dataframe.head())
         date_time_dataframe.to_csv('date_time_dataframe_cleaned.csv',index=False)
         return date_time_dataframe
 

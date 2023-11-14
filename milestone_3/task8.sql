@@ -2,7 +2,7 @@
 ALTER TABLE dim_card_details
 ADD PRIMARY KEY (card_number)
 
--- add primary key for table dim_users
+-- add primary key for table 
 ALTER TABLE dim_user_table
 ADD PRIMARY KEY (user_uuid)
 
