@@ -1,2 +1,0 @@
-class DataCleaning:
-    pass
