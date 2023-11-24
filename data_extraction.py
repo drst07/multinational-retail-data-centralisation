@@ -7,6 +7,7 @@ import requests
 import boto3
 from io import BytesIO
 import tabula
+import os
 
 class DataExtractor:
     ''' 
@@ -23,7 +24,7 @@ class DataExtractor:
         - db_connector: Database connector for RDS.
         '''
         self.db_connector = db_connector
-        self.api_key ={'x-api-key':'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+	self.api_key = os.environ.get('x-api-key', 'default_api_key')
         
 
     def read_rds_table(self, table_name, engine):
